@@ -32,7 +32,7 @@ class Command(BaseCommand):
                 lastname=fake.last_name(),
                 firstname=fake.first_name(),
                 middlename=fake.last_name(),
-                program=Program.objects.order_by('?').first()
+                program=Program.objects.order_by("?").first()
             )
         self.stdout.write(self.style.SUCCESS(
             'Initial data for students created successfully.'))
