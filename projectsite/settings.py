@@ -28,8 +28,6 @@ DEBUG = True
 ALLOWED_HOSTS = ["bry25.pythonanywhere.com", "127.0.0.1", "localhost"]
 
 
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -40,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'studentorg',
+    'widget-tweaks',
 ]
 
 MIDDLEWARE = [
