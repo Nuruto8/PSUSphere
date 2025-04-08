@@ -1,19 +1,19 @@
 from django.contrib import admin
 from django.urls import path
 from studentorg.views import (
-    HomePageView, 
+    HomePageView,
     OrganizationList, OrganizationCreateView, OrganizationUpdateView, OrganizationDeleteView, 
     StudentList, StudentCreateView, StudentUpdateView, StudentDeleteView, 
     ProgramList, ProgramCreateView, ProgramUpdateView, ProgramDeleteView, 
     OrgMemberList, OrgMemberCreateView, OrgMemberUpdateView, OrgMemberDeleteView,
-    CollegeList, CollegeCreateView, CollegeUpdateView, CollegeDeleteView,  # ✅ Added College Views
+    CollegeList, CollegeCreateView, CollegeUpdateView, CollegeDeleteView, 
 )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomePageView.as_view(), name='home'),
 
-    # ✅ College URLs
+    #  College URLs
     path('college_list', CollegeList.as_view(), name='college-list'),
     path('college_list/add', CollegeCreateView.as_view(), name='college-add'),
     path('college_list/<pk>/', CollegeUpdateView.as_view(), name='college-edit'),
