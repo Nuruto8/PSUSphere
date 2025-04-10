@@ -60,6 +60,7 @@ class OrganizationList(ListView):
         if self.request.GET.get("q") is not None:
             query = self.request.GET.get('q')
             qs = qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
+
         return qs
 
 
