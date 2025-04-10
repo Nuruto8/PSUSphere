@@ -57,9 +57,9 @@ class OrganizationList(ListView):
 
     def get_queryset(self, *args,  **kwargs):
         qs = super(OrganizationList, self).get_queryset(*args,  **kwargs)
-        if self.request.GET.get("q") != None:
+        if self.request.GET.get("q") is not None:
             query = self.request.GET.get('q')
-            qs = qs.filter(Q(name__icontains=query) | Q(descriptio__icontains=query))
+            qs = qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
         return qs
 
 
