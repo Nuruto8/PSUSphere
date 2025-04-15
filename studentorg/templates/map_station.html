@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+<div class="page-inner">
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">Fire Stations Map</h4>
+            <div class="card-category">
+                <select id="cityFilter" class="form-control">
+                    <option value="">All Cities</option>
+                    {% for city in cities %}
+                    <option value="{{ city }}">{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="map" style="height: 600px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    // Initialize map centered on Puerto Princesa
+    const map = L.map('map').setView([9.81644, 118.72239], 12);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // Custom fire truck icon
+    const fireIcon = L.icon({
+        iconUrl: '{% static "img/firetruck.png" %}',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+    });
+    
+    // Store markers
+    let markers = [];
+    
+    // Function to add markers to map
+    function addMarkers(stations) {
+        // Clear existing markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+        
+        // Add new markers
+        stations.forEach(station => {
+            const marker = L.marker(
+                [station.latitude, station.longitude],
+                {icon: fireIcon}
+            ).addTo(map)
+             .bindPopup(`<b>${station.name}</b><br>${station.city}`);
+            markers.push(marker);
+        });
+        
+        // Zoom to show all markers if any exist
+        if (markers.length > 0) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds());
+        }
+    }
+    
+    // Initial load of markers
+    addMarkers({{ fireStations|safe }});
+    
+    // City filter functionality
+    document.getElementById('cityFilter').addEventListener('change', function() {
+        const city = this.value;
+        fetch(`/filter-stations/?city=${encodeURIComponent(city)}`)
+            .then(response => response.json())
+            .then(data => addMarkers(data));
+    });
+</script>
+{% endblock %}

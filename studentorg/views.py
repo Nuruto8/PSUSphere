@@ -12,13 +12,14 @@ from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
+from fire.models import FireStation
 
 
 @method_decorator(login_required, name='dispatch')
 class HomePageView(ListView):
     model = Organization
     context_object_name = 'home'
-    template_name = "studentorg/home.html"
+    template_name = "home.html"
 
 
 # ✅ College Views
@@ -53,7 +54,7 @@ class CollegeDeleteView(DeleteView):
 class OrganizationList(ListView):
     model = Organization
     context_object_name = 'organization'
-    template_name = 'org_list.html'
+    template_name = 'organization_list.html'
     paginate_by = 5
 
     def get_queryset(self, *args,  **kwargs):
@@ -167,3 +168,49 @@ class OrgMemberDeleteView(DeleteView):
     model = OrgMember
     template_name = 'OrgMember_del.html'
     success_url = reverse_lazy('OrgMember-list')
+
+# Fire Station Views
+@method_decorator(login_required, name='dispatch')
+class FireStationList(ListView):
+    model = FireStation
+    context_object_name = 'firestations'
+    template_name = 'firestation_list.html'
+    paginate_by = 5
+
+class FireStationCreateView(CreateView):
+    model = FireStation
+    fields = '__all__'  # Or create a FireStationForm if needed
+    template_name = 'firestation_add.html'
+    success_url = reverse_lazy('firestation-list')
+
+class FireStationUpdateView(UpdateView):
+    model = FireStation
+    fields = '__all__'  # Or use FireStationForm
+    template_name = 'firestation_edit.html'
+    success_url = reverse_lazy('firestation-list')
+
+class FireStationDeleteView(DeleteView):
+    model = FireStation
+    template_name = 'firestation_del.html'
+    success_url = reverse_lazy('firestation-list')
+
+# Map View
+@method_decorator(login_required, name='dispatch')
+def map_station(request):
+    fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
+    
+    # Convert string coordinates to float
+    fireStations_list = []
+    for fs in fireStations:
+        fs_data = {
+            'name': fs['name'],
+            'latitude': float(fs['latitude']),
+            'longitude': float(fs['longitude'])
+        }
+        fireStations_list.append(fs_data)
+    
+    context = {
+        'fireStations': fireStations_list,
+    }
+    
+    return render(request, 'map_station.html', context)

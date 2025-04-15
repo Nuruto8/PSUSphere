@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'studentorg',
     'widget_tweaks',
+    'fire',
 ]
 
 MIDDLEWARE = [
