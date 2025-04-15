@@ -18,7 +18,7 @@ from django.views.generic import TemplateView
 class HomePageView(ListView):
     model = Organization
     context_object_name = 'home'
-    template_name = "studentorg/home.html"
+    template_name = "home.html"
 
 
 # ✅ College Views
