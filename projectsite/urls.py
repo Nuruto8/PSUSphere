@@ -7,13 +7,23 @@ from studentorg.views import (
     StudentList, StudentCreateView, StudentUpdateView, StudentDeleteView,
     ProgramList, ProgramCreateView, ProgramUpdateView, ProgramDeleteView,
     OrgMemberList, OrgMemberCreateView, OrgMemberUpdateView, OrgMemberDeleteView,
-    CollegeList, CollegeCreateView, CollegeUpdateView, CollegeDeleteView,
+    CollegeList, CollegeCreateView, CollegeUpdateView, CollegeDeleteView, ChartView, orgMemDoughnutChart,studentCountEveryCollege,radarStudenCountEveryCollege,programPolarchart, htmlLegendsChart,
+
 )
 from fire.views import map_station  # Import from fire app
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomePageView.as_view(), name='home'),
+
+
+     #charts
+    path('dashboard_chart', ChartView.as_view(), name='dashboard-chart'),
+    path('doughnut-chart/', orgMemDoughnutChart, name='doughnut-chart'),
+    path('doughnut-chart-college/', studentCountEveryCollege, name='doughnut-chart-college'),
+    path('radar-chart-college/', radarStudenCountEveryCollege, name='radar-chart-college'),
+    path('program-polar-chart/', programPolarchart, name='program-polar-chart'),
+    path('html-legends-chart/', htmlLegendsChart, name='html-legends-chart'),
 
     # College URLs
     path('college_list/', CollegeList.as_view(), name='college-list'),
