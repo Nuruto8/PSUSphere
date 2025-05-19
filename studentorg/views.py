@@ -151,21 +151,16 @@ class CollegeDeleteView(DeleteView):
 class OrganizationList(BaseListView):
     model = Organization
     context_object_name = 'organization'
-<<<<<<< HEAD
     template_name = 'organization_list.html'
     paginate_by = 5
+    search_fields = ['name', 'description', 'college__college_name']
 
     def get_queryset(self, *args,  **kwargs):
         qs = super(OrganizationList, self).get_queryset(*args,  **kwargs)
         if self.request.GET.get("q") is not None:
             query = self.request.GET.get('q')
             qs = qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
-
         return qs
-=======
-    template_name = 'org_list.html'
-    search_fields = ['name', 'description', 'college__college_name']
->>>>>>> 6d9f211cbaf99d243be40ee4aeec0678e7b05933
 
 
 class OrganizationCreateView(CreateView):
@@ -275,7 +270,7 @@ class OrgMemberUpdateView(UpdateView):
 class OrgMemberDeleteView(DeleteView):
     model = OrgMember
     template_name = 'OrgMember_del.html'
-<<<<<<< HEAD
+
     success_url = reverse_lazy('OrgMember-list')
 
 # Fire Station Views
@@ -323,7 +318,7 @@ def map_station(request):
     }
     
     return render(request, 'map_station.html', context)
-=======
+
     success_url = reverse_lazy('orgmember-list')
 
 
@@ -342,4 +337,4 @@ def programPolarchart(request):
 
 def htmlLegendsChart(request):
     return HTMLLegendsChart.get(request)
->>>>>>> 6d9f211cbaf99d243be40ee4aeec0678e7b05933
+
