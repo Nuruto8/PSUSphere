@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-inner" style="margin: 100px 50px">
+  <div class="row">
+    <div class="col-md-6 col-sm-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Organization Members (Doughnut)</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="doughnut-chart" style="width: 100%; height: 400px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-sm-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Students per College (Doughnut)</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="doughnut-chart-college" style="width: 100%; height: 400px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-sm-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Students per College (Radar)</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="radar-chart-college" style="width: 100%; height: 400px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 col-sm-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Program Distribution (Polar)</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="program-polar-chart" style="width: 100%; height: 400px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Student Count by Organization</div>
+        </div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="html-legends-chart" style="width: 100%; height: 400px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block chart %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Generate optimized colors
+  function generateColors(count) {
+    return Array.from({ length: count }, (_, i) => `hsl(${(360 / count) * i}, 70%, 60%)`);
+  }
+
+  // Initialize all charts
+  const initChart = (id, type, defaultData) => {
+    const ctx = document.getElementById(id).getContext('2d');
+    return new Chart(ctx, {
+      type: type,
+      data: defaultData,
+      options: {
+        plugins: { legend: { position: "bottom" } },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  };
+
+  // Chart instances
+  const charts = {
+    doughnut: initChart('doughnut-chart', 'doughnut', {
+      labels: [],
+      datasets: [{
+        label: 'Members',
+        data: [],
+        backgroundColor: [],
+        borderWidth: 1
+      }]
+    }),
+    doughnutCollege: initChart('doughnut-chart-college', 'doughnut', {
+      labels: [],
+      datasets: [{
+        label: 'Students',
+        data: [],
+        backgroundColor: [],
+        borderWidth: 1
+      }]
+    }),
+    radar: initChart('radar-chart-college', 'radar', {
+      labels: [],
+      datasets: [{
+        label: 'Students',
+        data: [],
+        borderColor: "#1d7af3",
+        backgroundColor: "rgba(29, 122, 243, 0.4)",
+        pointBackgroundColor: "#1d7af3"
+      }]
+    }),
+    polar: initChart('program-polar-chart', 'polarArea', {
+      labels: [],
+      datasets: [{
+        label: 'Students',
+        data: [],
+        backgroundColor: []
+      }]
+    }),
+    line: initChart('html-legends-chart', 'line', {
+      labels: [],
+      datasets: []
+    })
+  };
+
+  // Load data for a chart
+  const loadChartData = (url, chart, colorFn) => {
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        const labels = Object.keys(data);
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = Object.values(data);
+        
+        if (colorFn) {
+          chart.data.datasets[0].backgroundColor = colorFn(labels.length);
+        }
+        
+        chart.update();
+      })
+      .catch(error => console.error(`Error loading ${url}:`, error));
+  };
+
+  // Load line chart data (special case)
+  const loadLineChartData = () => {
+    fetch("/html-legends-chart/")
+      .then(res => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then(data => {
+        const orgNames = Object.keys(data);
+        const months = orgNames.length > 0 ? Object.keys(data[orgNames[0]].student_count) : [];
+        const colors = generateColors(orgNames.length);
+        
+        charts.line.data.labels = months;
+        charts.line.data.datasets = orgNames.map((org, i) => ({
+          label: org,
+          data: months.map(month => data[org].student_count[month] || 0),
+          backgroundColor: colors[i],
+          borderColor: colors[i],
+          fill: false
+        }));
+        
+        charts.line.update();
+      })
+      .catch(error => console.error("Error loading line chart data:", error));
+  };
+
+  // Load all data
+  loadChartData("/doughnut-chart/", charts.doughnut, generateColors);
+  loadChartData("/doughnut-chart-college/", charts.doughnutCollege, generateColors);
+  loadChartData("/radar-chart-college/", charts.radar);
+  loadChartData("/program-polar-chart/", charts.polar, generateColors);
+  loadLineChartData();
+});
+</script>
+{% endblock %}

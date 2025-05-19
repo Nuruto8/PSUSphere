@@ -1,4 +1,5 @@
 from django.shortcuts import render
+<<<<<<< HEAD
 from django.http import JsonResponse
 from .models import FireStation
 
@@ -39,3 +40,14 @@ def filter_stations(request):
     } for station in stations]
     
     return JsonResponse(data, safe=False)
+=======
+from fire.models import FireStation
+
+def map_station(request):
+    fireStations = FireStation.objects.values('name', 'latitude', 'longitude')
+    for fs in fireStations:
+        fs['latitude'] = float(fs['latitude'])
+        fs['longitude'] = float(fs['longitude'])
+    context = {'fireStations': list(fireStations)}
+    return render(request, 'map_station.html', context)
+>>>>>>> 6d9f211cbaf99d243be40ee4aeec0678e7b05933

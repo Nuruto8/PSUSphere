@@ -7,14 +7,31 @@ from studentorg.forms import (
 from django.urls import reverse_lazy
 from typing import Any
 from django.db.models.query import QuerySet
-from django.db.models import Q
-
+from django.db.models import Q, Count
+from django.http import JsonResponse
+from django.db import connection
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView
 from fire.models import FireStation
 
 
+class BaseListView(ListView):
+    paginate_by = 5
+    search_fields = []
+    
+    def get_queryset(self, *args, **kwargs):
+        qs = super().get_queryset(*args, **kwargs)
+        query = self.request.GET.get("q")
+        if query:
+            q_objects = Q()
+            for field in self.search_fields:
+                q_objects |= Q(**{f"{field}__icontains": query})
+            qs = qs.filter(q_objects)
+        return qs
+
+
+# Home Page View
 @method_decorator(login_required, name='dispatch')
 class HomePageView(ListView):
     model = Organization
@@ -22,12 +39,92 @@ class HomePageView(ListView):
     template_name = "home.html"
 
 
-# ✅ College Views
-class CollegeList(ListView):
+# Chart View Template
+class ChartView(TemplateView):
+    template_name = 'chart.html'
+
+
+# Chart Data Views
+class BaseChartData:
+    @staticmethod
+    def get_json_response(query, params=None):
+        with connection.cursor() as cursor:
+            cursor.execute(query, params or [])
+            rows = cursor.fetchall()
+        result = {name: count for name, count in rows}
+        return JsonResponse(result)
+
+
+class OrgMemDoughnutChart(BaseChartData):
+    @staticmethod
+    def get(request):
+        query = """
+            SELECT o.name, COUNT(m.id) AS student_count
+            FROM studentorg_orgmember m
+            INNER JOIN studentorg_organization o ON m.organization_id = o.id
+            GROUP BY o.name
+        """
+        return BaseChartData.get_json_response(query)
+
+
+class StudentCountEveryCollege(BaseChartData):
+    @staticmethod
+    def get(request):
+        college_student_counts = Student.objects.values(
+            'program__college__college_name'
+        ).annotate(student_count=Count('id'))
+        result = {
+            college['program__college__college_name']: college['student_count'] 
+            for college in college_student_counts
+        }
+        return JsonResponse(result)
+
+
+class RadarStudentCountEveryCollege(StudentCountEveryCollege):
+    pass  # Same functionality as StudentCountEveryCollege
+
+
+class ProgramPolarChart(BaseChartData):
+    @staticmethod
+    def get(request):
+        query = """
+            SELECT p.prog_name, COUNT(s.id) AS student_count
+            FROM studentorg_program p
+            INNER JOIN studentorg_student s ON p.id = s.program_id
+            GROUP BY p.prog_name
+        """
+        return BaseChartData.get_json_response(query)
+
+
+class HTMLLegendsChart:
+    @staticmethod
+    def get(request):
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT o.name, COUNT(m.id) AS student_count, 
+                       STRFTIME('%m', m.date_joined) AS joined_month
+                FROM studentorg_orgmember m
+                INNER JOIN studentorg_organization o ON m.organization_id = o.id
+                GROUP BY o.name, joined_month
+            """)
+            rows = cursor.fetchall()
+
+        result = {}
+        for org_name, count, joined_month in rows:
+            if org_name not in result:
+                result[org_name] = {'student_count': {}, 'total_students': 0}
+            result[org_name]['student_count'][joined_month] = count
+            result[org_name]['total_students'] += count
+
+        return JsonResponse(result)
+
+
+# College Views
+class CollegeList(BaseListView):
     model = College
     context_object_name = 'colleges'
     template_name = 'college_list.html'
-    paginate_by = 5
+    search_fields = ['college_name', 'college_dean']
 
 
 class CollegeCreateView(CreateView):
@@ -51,9 +148,10 @@ class CollegeDeleteView(DeleteView):
 
 
 # Organization Views
-class OrganizationList(ListView):
+class OrganizationList(BaseListView):
     model = Organization
     context_object_name = 'organization'
+<<<<<<< HEAD
     template_name = 'organization_list.html'
     paginate_by = 5
 
@@ -64,6 +162,10 @@ class OrganizationList(ListView):
             qs = qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
 
         return qs
+=======
+    template_name = 'org_list.html'
+    search_fields = ['name', 'description', 'college__college_name']
+>>>>>>> 6d9f211cbaf99d243be40ee4aeec0678e7b05933
 
 
 class OrganizationCreateView(CreateView):
@@ -87,11 +189,14 @@ class OrganizationDeleteView(DeleteView):
 
 
 # Student Views
-class StudentList(ListView):
+class StudentList(BaseListView):
     model = Student
     context_object_name = 'student'
     template_name = 'student_list.html'
-    paginate_by = 5
+    search_fields = [
+        'student_id', 'lastname', 'firstname', 
+        'middlename', 'program__prog_name'
+    ]
 
 
 class StudentCreateView(CreateView):
@@ -115,11 +220,11 @@ class StudentDeleteView(DeleteView):
 
 
 # Program Views
-class ProgramList(ListView):
+class ProgramList(BaseListView):
     model = Program
     context_object_name = 'program'
     template_name = 'prog_list.html'
-    paginate_by = 5
+    search_fields = ['prog_name', 'college__college_name']
 
 
 class ProgramCreateView(CreateView):
@@ -143,30 +248,34 @@ class ProgramDeleteView(DeleteView):
 
 
 # OrgMember Views
-class OrgMemberList(ListView):
+class OrgMemberList(BaseListView):
     model = OrgMember
     context_object_name = 'orgmember'
     template_name = 'OrgMember_list.html'
-    paginate_by = 5
+    search_fields = [
+        'student__firstname', 'student__lastname', 
+        'organization__name', 'date_joined'
+    ]
 
 
 class OrgMemberCreateView(CreateView):
     model = OrgMember
     form_class = OrgMemberForm
     template_name = 'OrgMember_add.html'
-    success_url = reverse_lazy('OrgMember-list')
+    success_url = reverse_lazy('orgmember-list')
 
 
 class OrgMemberUpdateView(UpdateView):
     model = OrgMember
     form_class = OrgMemberForm
     template_name = 'OrgMember_edit.html'
-    success_url = reverse_lazy('OrgMember-list')
+    success_url = reverse_lazy('orgmember-list')
 
 
 class OrgMemberDeleteView(DeleteView):
     model = OrgMember
     template_name = 'OrgMember_del.html'
+<<<<<<< HEAD
     success_url = reverse_lazy('OrgMember-list')
 
 # Fire Station Views
@@ -214,3 +323,23 @@ def map_station(request):
     }
     
     return render(request, 'map_station.html', context)
+=======
+    success_url = reverse_lazy('orgmember-list')
+
+
+# URL-compatible view functions
+def orgMemDoughnutChart(request):
+    return OrgMemDoughnutChart.get(request)
+
+def studentCountEveryCollege(request):
+    return StudentCountEveryCollege.get(request)
+
+def radarStudenCountEveryCollege(request):
+    return RadarStudentCountEveryCollege.get(request)
+
+def programPolarchart(request):
+    return ProgramPolarChart.get(request)
+
+def htmlLegendsChart(request):
+    return HTMLLegendsChart.get(request)
+>>>>>>> 6d9f211cbaf99d243be40ee4aeec0678e7b05933
